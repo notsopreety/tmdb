@@ -17,6 +17,55 @@ const TMDB_TOKEN = process.env.TMDB_TOKEN;
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const POSTER_URL = "https://image.tmdb.org/t/p/w500";
 
+// Available genres
+const AVAILABLE_GENRES = [
+  "action", "adventure", "animation", "anime", "comedy", "crime",
+  "documentary", "drama", "family", "fantasy", "horror", "music",
+  "musical", "mystery", "romance", "sci-fi", "sport", "thriller", "western"
+];
+
+// Genre mappings with splitting for combined genres
+const movieGenres = {
+  28: ["action"],
+  12: ["adventure"],
+  16: ["animation"],
+  35: ["comedy"],
+  80: ["crime"],
+  99: ["documentary"],
+  18: ["drama"],
+  10751: ["family"],
+  14: ["fantasy"],
+  36: ["history"],
+  27: ["horror"],
+  10402: ["music", "musical"],
+  9648: ["mystery"],
+  10749: ["romance"],
+  878: ["sci-fi"],
+  10770: ["drama"], // TV Movie mapped to drama
+  53: ["thriller"],
+  10752: ["war"], // War mapped to drama or thriller if needed, but excluded as not in AVAILABLE_GENRES
+  37: ["western"]
+};
+
+const tvGenres = {
+  10759: ["action", "adventure"],
+  16: ["animation", "anime"],
+  35: ["comedy"],
+  80: ["crime"],
+  99: ["documentary"],
+  18: ["drama"],
+  10751: ["family"],
+  10762: ["family"], // Kids mapped to family
+  9648: ["mystery"],
+  10763: ["news"], // News excluded as not in AVAILABLE_GENRES
+  10764: ["reality"], // Reality excluded as not in AVAILABLE_GENRES
+  10765: ["sci-fi", "fantasy"],
+  10766: ["drama"], // Soap mapped to drama
+  10767: ["talk"], // Talk excluded as not in AVAILABLE_GENRES
+  10768: ["war"], // War & Politics mapped to drama or thriller, excluded as not in AVAILABLE_GENRES
+  37: ["western"]
+};
+
 // Route Map
 const routeMap = {
   trending: {
@@ -67,6 +116,10 @@ const formatItems = async (items) => {
     const media_type = item.media_type || (item.first_air_date ? "tv" : "movie");
     const rating = item.vote_average;
     const poster = item.poster_path ? POSTER_URL + item.poster_path : null;
+    const genre_ids = item.genre_ids || [];
+    const genres = genre_ids
+      .flatMap(id => (media_type === "movie" ? movieGenres[id] : tvGenres[id]) || [])
+      .filter(genre => AVAILABLE_GENRES.includes(genre));
 
     const imdb_id = await fetchExternalId(id, media_type);
     if (!imdb_id) continue;
@@ -76,7 +129,8 @@ const formatItems = async (items) => {
       title,
       media_type,
       rating,
-      poster
+      poster,
+      genres
     });
   }
 
